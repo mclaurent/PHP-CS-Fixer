@@ -62,47 +62,35 @@ final class SpacesInsideParenthesisFixer extends AbstractFixer
      */
     protected function applyFix(\SplFileInfo $file, Tokens $tokens)
     {
-        foreach ($tokens as $index => $token) {
-            if (!$token->equals('(')) {
-                continue;
+        for ($index = $tokens->count() - 1; $index >= 0; --$index) {
+            if ( $tokens[$index]->equals( ')' ) ) {
+                $this->fixSpacing( $index, $tokens );
             }
-
-            $prevIndex = $tokens->getPrevMeaningfulToken($index);
-
-            // ignore parenthesis for T_ARRAY
-            // if (null !== $prevIndex) {
-                // continue;
-            // }
-
-            $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS_BRACE, $index);
-
-
-            // insert space after opening `(`
-            // if (!$tokens[$tokens->getNextNonWhitespace($index)]->isComment()) {
-                echo "adding space before";
-                $this->insertSpaceAroundToken($tokens, $index + 1);
-            // }
-
-            // insert space before closing `)` if it is not `list($a, $b, )` case
-            // if (!$tokens[$tokens->getPrevMeaningfulToken($endIndex)]->equals(',')) {
-                $this->insertSpaceAroundToken($tokens, $endIndex - 1);
-            // }
         }
     }
-
-    /**
-     * Remove spaces from token at a given index.
+        /**
+     * Method to fix spacing in array declaration.
      *
-     * @param Tokens $tokens
      * @param int    $index
+     * @param Tokens $tokens
      */
-    private function insertSpaceAroundToken(Tokens $tokens, $index)
+    private function fixSpacing($index, Tokens $tokens)
     {
-        $token = $tokens[$index];
+        // insert space after opening `(`
+        $startIndex = $tokens->findBlockStart(Tokens::BLOCK_TYPE_PARENTHESIS_BRACE, $index);
 
-        if (!$token->isWhitespace() ) { // && false === strpos($token->getContent(), "\n")) {
+        if ( $startIndex === $index - 1 ){
+            return;
+        }
+        if (!$tokens[$tokens->getPrevMeaningfulToken($index)]->equals(',')) {
+            $tokens->ensureWhitespaceAtIndex($index-1,0,' ');
+        }
 
-            $tokens->insertAt($index, new Token([T_WHITESPACE, ' ']));
+
+        // insert space before closing `)` if it is not `list($a, $b, )` case
+        if (!$tokens[$tokens->getNextNonWhitespace($startIndex)]->isComment()) {
+            $tokens->ensureWhitespaceAtIndex($startIndex+1,0,' ');
         }
     }
+
 }
